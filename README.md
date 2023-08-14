@@ -1,103 +1,322 @@
-# Serialization
+# Serialization : Code-Along
 
 ## Learning Goals
 
-- Learning goal 1.
-- Learning goal 2.
+- Use SQLAlchemy-Serializer to convert SQLAlchemy objects into dictionaries.
 
-***
+---
 
 ## Key Vocab
 
-- **Vocab Term**: definition. Continuation of definition.
+- **Serialization**: a process to convert programmatic data such as a Python
+  object to a sequence of bytes that can be shared with other programs,
+  computers, or networks.
+- **Deserialization**: the reverse process, converting a sequence of bytes back
+  to programmatic data.
+- **SQLAlchemy-Serializer**: A powerful tool for serializing data in Python
+  using the SQLAlchemy ORM.
 
-***
+---
 
 ## Introduction
 
-Lorem ipsum dolor sit amet. Ut velit fugit et porro voluptas quia sequi quo
-libero autem qui similique placeat eum velit autem aut repellendus quia. Et
-Quis magni ut fugit obcaecati in expedita fugiat est iste rerum qui ipsam
-ducimus et quaerat maxime sit eaque minus. Est molestias voluptatem et nostrum
-recusandae qui incidunt Quis 33 ipsum perferendis sed similique architecto.
+Serialization allows us to convert data such as an Python object to a sequence
+of bytes that can be shared with other programs, computers, or networks.
+Deserialization is the reverse process, converting a sequence of bytes back to
+one or more Python objects.
 
-Sed ipsam quidem eum minima maxime et commodi dolores quo ipsa maxime aut vero
-consectetur id velit dignissimos. Et fuga porro eum galisum suscipit qui esse
-blanditiis sed explicabo officia aut mollitia error est illo earum et sint
-laborum! Sit aspernatur accusantium aut doloribus saepe est magni quod aut
-molestiae voluptatem.
+SQLAlchemy-Serializer is a powerful tool for serializing data in Python using
+the SQLAlchemy ORM. It provides an easy and efficient way to convert SQLAlchemy
+database models into dictionaries or other data formats.
 
-Vel inventore minus aut ullam maiores sit internos cupiditate eos odit totam
-eos molestiae galisum. Et ipsum provident ut nihil dicta et dicta doloremque
-eum magnam ullam ut quibusdam quaerat.
+We've seen how to manually create a dictionary to map object attribute names as
+keys to values. In this lesson, we'll use the SQLAlchemy-Serializer library to
+generate this dictionary for a given model class.
 
-***
+---
 
-## Lesson Section
+## Setup
 
-Lorem ipsum dolor sit amet. Ut velit fugit et porro voluptas quia sequi quo
-libero autem qui similique placeat eum velit autem aut repellendus quia. Et
-Quis magni ut fugit obcaecati in expedita fugiat est iste rerum qui ipsam
-ducimus et quaerat maxime sit eaque minus. Est molestias voluptatem et nostrum
-recusandae qui incidunt Quis 33 ipsum perferendis sed similique architecto.
+This lesson is a code-along, so fork and clone the repo.
 
-```py
-# python code block
-print("statement")
-# => statement
-```
-
-```js
-// javascript code block
-console.log("use these for comparisons between languages.")
-// => use these for comparisons between languages.
-```
+Run `pipenv install` to install the dependencies and `pipenv shell` to enter
+your virtual environment before running your code.
 
 ```console
-echo "bash/zshell statement"
-# => bash/zshell statement
+$ pipenv install
+$ pipenv shell
 ```
 
-<details>
-  <summary>
-    <em>Check for understanding text goes here! <code>Code statements go here.</code></em>
-  </summary>
+Change into the `server` directory and configure the `FLASK_APP` and
+`FLASK_RUN_PORT` environment variables:
 
-  <h3>Answer.</h3>
-  <p>Elaboration on answer.</p>
-</details>
-<br/>
+```console
+$ cd server
+$ export FLASK_APP=app.py
+$ export FLASK_RUN_PORT=5555
+```
 
-***
+The commands `flask db init`, `flask db migrate`, and `flask db upgrade head`
+have already been run, and the database has been seeded with `python seed.py`.
 
-## Instructions
+Use the Flask shell to confirm 10 random random pets have been added to the
+database (your results may differ if you need to rerun the migration sequence):
 
-This is a **test-driven lab**. Run `pipenv install` to create your virtual
-environment and `pipenv shell` to enter the virtual environment. Then run
-`pytest -x` to run your tests. Use these instructions and `pytest`'s error
-messages to complete your work in the `lib/` folder.
+```command
+$ flask shell
+>>> Pet.query.all()
+[<Pet 1, Kayla, Dog>, <Pet 2, Teresa, Chicken>, <Pet 3, Christine, Chicken>, <Pet 4, Cheryl, Dog>, <Pet 5, Devin, Cat>, <Pet 6, Ronald, Dog>, <Pet 7, James, Hamster>, <Pet 8, Christian, Turtle>, <Pet 9, Megan, Cat>, <Pet 10, Anthony, Cat>]
+>>> exit()
+```
 
-Instructions begin here:
+---
 
-- Make sure to specify any class, method, variable, module, package names
-  that `pytest` will check for.
-- Any other instructions go here.
+### `SerializerMixin`
 
-Once all of your tests are passing, commit and push your work using `git` to
-submit.
+Within the `server` folder, open `models.py` and you'll notice a new import at
+the top:
 
-***
+```py
+# models.py
+from sqlalchemy_serializer import SerializerMixin
+```
+
+When a model class inherits from the
+` SerializerMixin``, it gains a range of methods for serializing and deserializing data. These methods include  `to_dict()`,
+which converts the model object into a dictionary.
+
+In `models.py`, we'll need to reconfigure our model to inherit from
+`SerializerMixin`. Don't worry though- this only requires a small amount of new
+code, and we won't have to run new migrations afterward. Update the `Pet` class
+header to add `SerializerMixin` as a superclass:
+
+```py
+# models.py
+# imports, config
+
+class Pet(db.Model, SerializerMixin):
+    ...
+
+
+```
+
+By now you should have created your database and run `seed.py`; if you haven't
+yet, do that now!
+
+Once you have a populated database, navigate to the `server/` directory and run
+`flask shell` to start manipulating our models. Import all of your models and
+retrieve a `Zookeeper` record. Let's run its brand new method, `to_dict()`:
+
+```console
+$ flask shell
+>>> from models import Pet
+>>> Pet.query.all()
+[<Pet 1, Kayla, Dog>, <Pet 2, Teresa, Chicken>, <Pet 3, Christine, Chicken>, <Pet 4, Cheryl, Dog>, <Pet 5, Devin, Cat>, <Pet 6, Ronald, Dog>, <Pet 7, James, Hamster>, <Pet 8, Christian, Turtle>, <Pet 9, Megan, Cat>, <Pet 10, Anthony, Cat>]
+>>> pet1 = Pet.query.first()
+>>> pet1
+<Pet 1, Kayla, Dog>
+>>> pet1.to_dict()
+{'name': 'Kayla', 'id': 1, 'species': 'Dog'}
+```
+
+Wow, the `to_dict()` method that `Pet` inherits from `SerializerMixin` returns a
+dictionary mapping each attribute name to the current instance's values!
+
+### `to_dict()`
+
+`to_dict()` is a simple method: it takes a SQLAlchemy object, turns its columns
+into dictionary keys, and turns its column values into dictionary values.
+
+---
+
+## Updating our Flask Application that returns a JSON reponse
+
+The previous version of our server had to manually create the pet dictionary
+from the query result:
+
+```py
+@app.route('/pets/<int:id>')
+def pet_by_id(id):
+    pet = Pet.query.filter(Pet.id == id).first()
+
+    if not pet:
+        body = {'message': f'Pet {id} not found.'}
+        status = 404
+    else:
+        body = {'id': pet.id,
+                'name': pet.name,
+                'species': pet.species}
+        status = 200
+
+    return make_response(body, status)
+```
+
+Now that our `Pet` model inherits from `SerializerMixin`, we can just call
+`to_dict()` on a `Pet` instance to generate the dictionary. Edit `app.py` to add
+the following route and view:
+
+```py
+@app.route('/pets/<int:id>')
+def pet_by_id(id):
+    pet = Pet.query.filter(Pet.id == id).first()
+
+    if not pet:
+        body = {'message': f'Pet {id} not found.'}
+        status = 404
+    else:
+        body = pet.to_dict()
+        status = 200
+
+    return make_response(body, status)
+```
+
+Save and test the app with a valid id using the URL
+http://127.0.0.1:5555/pets/5, along with a non-existent id such the URL
+http://127.0.0.1:5555/pets/1000.
+
+In a similar fashion, we can use `to_dict()` to create the dictionary for each
+pet returned when we query by species. Add the following route and view to
+`app.py`:
+
+```py
+@app.route('/species/<string:species>')
+def pet_by_species(species):
+    pets = []  # array to store a dictionary for each pet
+    for pet in Pet.query.filter_by(species=species).all():
+        pets.append(pet.to_dict())
+    body = {'count': len(pets),
+            'pets': pets
+            }
+    return make_response(body, 200)
+```
+
+Save and test the app with an species that matches some pets using the URL
+http://127.0.0.1:5555/species/Dog, along with a species that matches no pets
+such the URL http://127.0.0.1:5555/pets/Whale.
 
 ## Conclusion
 
-Conclusion summary paragraph. Include common misconceptions and what students
-will be able to do moving forward.
+SQLAlchemy-Serializer is a helpful tool that helps programmers turn complex data
+into simpler, portable formats. SQLAlchemy-Serializer makes it easy to convert a
+Python object into a dictionary, which is then easily converted to JSON.
 
-***
+---
+
+## Solution Code
+
+```py
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import MetaData
+from sqlalchemy_serializer import SerializerMixin
+
+metadata = MetaData()
+
+db = SQLAlchemy(metadata=metadata)
+
+class Pet(db.Model, SerializerMixin):
+    __tablename__ = 'pets'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+    species = db.Column(db.String)
+
+    def __repr__(self):
+        return f'<Pet {self.id}, {self.name}, {self.species}>'
+
+```
+
+```py
+# server/app.py
+#!/usr/bin/env python3
+
+from flask import Flask, make_response
+from flask_migrate import Migrate
+
+from models import db, Pet
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.json.compact = False
+
+migrate = Migrate(app, db)
+db.init_app(app)
+
+
+@app.route('/')
+def index():
+    body = {'message': 'Welcome to the pet directory!'}
+    return make_response(body, 200)
+
+
+@app.route('/pets/<int:id>')
+def pet_by_id(id):
+    pet = Pet.query.filter(Pet.id == id).first()
+
+    if not pet:
+        body = {'message': f'Pet {id} not found.'}
+        status = 404
+    else:
+        body = pet.to_dict()
+        status = 200
+
+    return make_response(body, status)
+
+
+@app.route('/species/<string:species>')
+def pet_by_species(species):
+    pets = []  # array to store a dictionary for each pet
+    for pet in Pet.query.filter_by(species=species).all():
+        pets.append(pet.to_dict())
+    body = {'count': len(pets),
+            'pets': pets
+            }
+    return make_response(body, 200)
+
+
+if __name__ == '__main__':
+    app.run(port=5555, debug=True)
+
+```
+
+```py
+#!/usr/bin/env python3
+#server/seed.py
+from random import choice as rc
+from faker import Faker
+
+from app import app
+from models import db, Pet
+
+with app.app_context():
+
+    # Create and initialize a faker generator
+    fake = Faker()
+
+    # Delete all rows in the "pets" table
+    Pet.query.delete()
+
+    # Create an empty list
+    pets = []
+
+    species = ['Dog', 'Cat', 'Chicken', 'Hamster', 'Turtle']
+
+    # Add some Pet instances to the list
+    for n in range(10):
+        pet = Pet(name=fake.first_name(), species=rc(species))
+        pets.append(pet)
+
+    # Insert each Pet in the list into the "pets" table
+    db.session.add_all(pets)
+
+    # Commit the transaction
+    db.session.commit()
+```
 
 ## Resources
 
-- [Resource 1](https://www.python.org/doc/essays/blurb/)
-- [Reused Resource][reused resource]
+- [Quickstart - Flask-SQLAlchemy][flask_sqla]
+- [Flask-Migrate](https://flask-migrate.readthedocs.io/en/latest/)
+- [SQLAlchemy-Serializer](https://pypi.org/project/SQLAlchemy-serializer/)
 
-[reused resource]: https://docs.python.org/3/
+[flask_sqla]: https://flask-sqlalchemy.palletsprojects.com/en/2.x/quickstart/#
