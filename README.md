@@ -65,7 +65,7 @@ database (your results may differ if you need to rerun the migration sequence):
 ```command
 $ flask shell
 >>> Pet.query.all()
-[<Pet 1, Kayla, Dog>, <Pet 2, Teresa, Chicken>, <Pet 3, Christine, Chicken>, <Pet 4, Cheryl, Dog>, <Pet 5, Devin, Cat>, <Pet 6, Ronald, Dog>, <Pet 7, James, Hamster>, <Pet 8, Christian, Turtle>, <Pet 9, Megan, Cat>, <Pet 10, Anthony, Cat>]
+[<Pet 1, Jodi, Chicken>, <Pet 2, Cheyenne, Dog>, <Pet 3, Christina, Turtle>, <Pet 4, Jessica, Turtle>, <Pet 5, Sharon, Hamster>, <Pet 6, Ryan, Hamster>, <Pet 7, Kelly, Hamster>, <Pet 8, Jason, Dog>, <Pet 9, Brenda, Hamster>, <Pet 10, Richard, Dog>]
 >>> exit()
 ```
 
@@ -100,23 +100,20 @@ class Pet(db.Model, SerializerMixin):
 
 ```
 
-By now you should have created your database and run `seed.py`; if you haven't
-yet, do that now!
-
-Once you have a populated database, navigate to the `server/` directory and run
-`flask shell` to start manipulating our models. Import all of your models and
-retrieve a `Zookeeper` record. Let's run its brand new method, `to_dict()`:
+Make sure you are in the `server/` directory and run `flask shell` to start
+manipulating our models. Let's retrieve a `Pet` record and then run its brand
+new method, `to_dict()`:
 
 ```console
 $ flask shell
 >>> from models import Pet
 >>> Pet.query.all()
-[<Pet 1, Kayla, Dog>, <Pet 2, Teresa, Chicken>, <Pet 3, Christine, Chicken>, <Pet 4, Cheryl, Dog>, <Pet 5, Devin, Cat>, <Pet 6, Ronald, Dog>, <Pet 7, James, Hamster>, <Pet 8, Christian, Turtle>, <Pet 9, Megan, Cat>, <Pet 10, Anthony, Cat>]
+[<Pet 1, Jodi, Chicken>, <Pet 2, Cheyenne, Dog>, <Pet 3, Christina, Turtle>, <Pet 4, Jessica, Turtle>, <Pet 5, Sharon, Hamster>, <Pet 6, Ryan, Hamster>, <Pet 7, Kelly, Hamster>, <Pet 8, Jason, Dog>, <Pet 9, Brenda, Hamster>, <Pet 10, Richard, Dog>]
 >>> pet1 = Pet.query.first()
 >>> pet1
-<Pet 1, Kayla, Dog>
+<Pet 1, Jodi, Chicken>
 >>> pet1.to_dict()
-{'name': 'Kayla', 'id': 1, 'species': 'Dog'}
+{'name': 'Jodi', 'id': 1, 'species': 'Chicken'}
 ```
 
 Wow, the `to_dict()` method that `Pet` inherits from `SerializerMixin` returns a
@@ -139,14 +136,14 @@ from the query result:
 def pet_by_id(id):
     pet = Pet.query.filter(Pet.id == id).first()
 
-    if not pet:
+    if pet:
+        body = {'id': pet.id,
+            'name': pet.name,
+            'species': pet.species}
+        status = 200
+    else:
         body = {'message': f'Pet {id} not found.'}
         status = 404
-    else:
-        body = {'id': pet.id,
-                'name': pet.name,
-                'species': pet.species}
-        status = 200
 
     return make_response(body, status)
 ```
@@ -160,19 +157,20 @@ the following route and view:
 def pet_by_id(id):
     pet = Pet.query.filter(Pet.id == id).first()
 
-    if not pet:
-        body = {'message': f'Pet {id} not found.'}
-        status = 404
-    else:
+    if pet:
         body = pet.to_dict()
         status = 200
+    else:
+        body = {'message': f'Pet {id} not found.'}
+        status = 404
 
     return make_response(body, status)
 ```
 
 Save and test the app with a valid id using the URL
-http://127.0.0.1:5555/pets/5, along with a non-existent id such the URL
-http://127.0.0.1:5555/pets/1000.
+[http://127.0.0.1:5555/pets/5](http://127.0.0.1:5555/pets/5), along with a
+non-existent id such the URL
+[http://127.0.0.1:5555/pets/1000](http://127.0.0.1:5555/pets/1000).
 
 In a similar fashion, we can use `to_dict()` to create the dictionary for each
 pet returned when we query by species. Add the following route and view to
@@ -191,8 +189,9 @@ def pet_by_species(species):
 ```
 
 Save and test the app with an species that matches some pets using the URL
-http://127.0.0.1:5555/species/Dog, along with a species that matches no pets
-such the URL http://127.0.0.1:5555/pets/Whale.
+[http://127.0.0.1:5555/species/Dog](http://127.0.0.1:5555/species/Dog), along
+with a species that matches no pets such the URL
+[http://127.0.0.1:5555/species/Whale](http://127.0.0.1:5555/species/Whale).
 
 ## Conclusion
 
@@ -248,20 +247,18 @@ def index():
     body = {'message': 'Welcome to the pet directory!'}
     return make_response(body, 200)
 
-
 @app.route('/pets/<int:id>')
 def pet_by_id(id):
     pet = Pet.query.filter(Pet.id == id).first()
 
-    if not pet:
-        body = {'message': f'Pet {id} not found.'}
-        status = 404
-    else:
+    if pet:
         body = pet.to_dict()
         status = 200
+    else:
+        body = {'message': f'Pet {id} not found.'}
+        status = 404
 
     return make_response(body, status)
-
 
 @app.route('/species/<string:species>')
 def pet_by_species(species):
@@ -272,7 +269,6 @@ def pet_by_species(species):
             'pets': pets
             }
     return make_response(body, 200)
-
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
