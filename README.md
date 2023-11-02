@@ -56,8 +56,19 @@ $ export FLASK_APP=app.py
 $ export FLASK_RUN_PORT=5555
 ```
 
-The commands `flask db init`, `flask db migrate`, and `flask db upgrade head`
-have already been run, and the database has been seeded with `python seed.py`.
+The commands `flask db init` and `flask db migrate` have already been run. Run
+the following command to initialize the database from the existing migration
+script:
+
+```console
+$ flask db upgrade head
+```
+
+Run the following command to seed the table with sample data:
+
+```command
+$ python seed.py
+```
 
 Use the Flask shell to confirm 10 random random pets have been added to the
 database (your results may differ if you need to rerun the migration sequence):
